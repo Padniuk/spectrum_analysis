@@ -1,9 +1,5 @@
-import os
 import argparse
-import matplotlib.pyplot as plt
-from utils import file_reader, process_data, Plotter
-from tools import Validator
-from scipy.signal import savgol_filter
+from utils import process_data, Plotter
 
 def main(folder_path, num_workers=2, sample=None):
     if sample is None:

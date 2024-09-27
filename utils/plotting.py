@@ -2,7 +2,6 @@ from matplotlib import pyplot as plt
 import os
 import numpy as np
 from scipy.stats import norm
-from scipy.optimize import curve_fit
 import matplotlib as mpl
 from tools import TriggerFitter, SignalFitter
 import statistics

@@ -1,19 +1,23 @@
 import argparse
 from utils import process_data, Plotter
 
+
 def main(folder_path, num_workers=2, sample=None):
     if sample is None:
         process_data(folder_path, num_workers)
     else:
         Plotter(folder_path).plot_spectra(time_disc_left=0, time_disc_right=2)
         Plotter(folder_path).plot_rise_time(left_lim=0, right_lim=2)
-        Plotter(folder_path).plot_rise_time_signal(left_lim_time=0, right_lim_time=0.4, is_log=False)
+        Plotter(folder_path).plot_rise_time_signal(
+            left_lim_time=0, right_lim_time=0.4, is_log=False
+        )
         Plotter(folder_path).plot_sample(sample)
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Process parameters')
-    parser.add_argument('-t', '--threads', type=int, help='Number of workers')
-    parser.add_argument('-f', '--folder', type=str, help='Folder path')
-    parser.add_argument('-s', '--sample', type=int, help='Sample number')
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process parameters")
+    parser.add_argument("-t", "--threads", type=int, help="Number of workers")
+    parser.add_argument("-f", "--folder", type=str, help="Folder path")
+    parser.add_argument("-s", "--sample", type=int, help="Sample number")
     args = parser.parse_args()
     main(args.folder, args.threads, args.sample)

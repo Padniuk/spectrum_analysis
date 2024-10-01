@@ -32,32 +32,56 @@ class SignalFitter(Fitter):
     
     def double_sigmoid(self, x, amp1, cen1, wid1, amp2, cen2, wid2, const):
         return self.sigmoid(x, amp1, cen1, wid1, 0) + self.sigmoid(x, amp2, cen2, wid2, 0) + const
+    
+    def one_exponent(self, x, amp, wid, cen=0, offset=0):
+        return self.sign* amp * (1-np.exp(-wid * (x-cen)))+offset
 
     def auto_borders(self):
-        smooth_y = savgol_filter(self.y, 400, 2)    
+        smooth_y = savgol_filter(self.y, 40, 2)    
         derivative = np.gradient(smooth_y)
         derivative = savgol_filter(derivative, 400, 2)
         derivative = np.abs(derivative)
-        threshold = 0.1 * np.max(derivative)
-
-        time = np.array(self.x)
-        time_points = [time[i] for i in range(len(derivative)) if derivative[i] > threshold]
+        threshold = 0.6 * np.max(derivative)
         
-        if time_points == []:
-            return -1, 0    
+        time = np.array(self.x)
+        time_points = [time[i] for i in range(len(derivative)) if derivative[i] > threshold and time[i] < 0.7*np.max(time) and time[i] > 0.3*np.min(time)]
+
+        if len(time_points) < 2:
+            return 0,0
         left = time_points[0]
         right = time_points[-1]
 
         filtered_indices = np.where((time >= left) & (time <= right))[0]
 
-        print(f"left: {left}, right: {right}")
         self.x = np.array(self.x)[filtered_indices]
         self.y = np.array(self.y)[filtered_indices]
 
-    def fit(self, func):
+        return left, right
+
+    def fit_fast_component(self, func):
         popt = super().fit(func, p0=[abs(np.max(self.y)-np.min(self.y)), 0.5*(self.x[0]+self.x[-1]), 0.05, -7],
                            bounds=([0, self.x[0], 0.000001, -np.inf], [np.inf, self.x[-1], np.inf, np.inf]))
         return np.append(popt, self.sign)
+    
+    def fit_slow_component(self, new_time, new_signals, right, signal_popt):
+        if self.sign  == 1:
+            offset = signal_popt[3]+signal_popt[0]
+        else:
+            offset = signal_popt[3]
+        func = lambda x, amp, wid: self.one_exponent(x, amp, wid, right, offset)
+        try:
+            popt, _ = curve_fit(func, new_time, new_signals, p0=[0.1, 0], bounds=([0, 0], [signal_popt[0], np.inf]))
+        except RuntimeError:
+            popt = [0, 0]
+        if popt[0] < 0.1 and self.sign == 1 and signal_popt[0]+signal_popt[3] > np.mean(new_signals):
+            popt[0] = np.mean(new_signals) - (signal_popt[0]+signal_popt[3])
+            popt[1] = 0
+
+        if popt[0] < 0.1 and self.sign == -1 and  np.mean(new_signals) > signal_popt[3]:
+            popt[0] = signal_popt[3] - np.mean(new_signals)
+            popt[1] = 0        
+        
+        return popt
 
 class TriggerFitter(Fitter):
     def __init__(self, x, y):

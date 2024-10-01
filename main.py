@@ -5,9 +5,9 @@ def main(folder_path, num_workers=2, sample=None):
     if sample is None:
         process_data(folder_path, num_workers)
     else:
-        Plotter(folder_path).plot_spectra()
-        Plotter(folder_path).plot_rise_time()
-        Plotter(folder_path).plot_rise_time_signal()
+        Plotter(folder_path).plot_spectra(time_disc_left=0, time_disc_right=2)
+        Plotter(folder_path).plot_rise_time(left_lim=0, right_lim=2)
+        Plotter(folder_path).plot_rise_time_signal(left_lim_time=0, right_lim_time=0.4, is_log=False)
         Plotter(folder_path).plot_sample(sample)
 
 if __name__ == '__main__':

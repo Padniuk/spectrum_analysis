@@ -16,11 +16,17 @@ def process_file(file):
     if np.any(np.isinf(time)) or np.any(np.isinf(signal)) or np.any(np.isinf(trigger)):
         print(f"Inf values found in {file}")
         return {"trigger": [], "signal": [], "rise_time": []}
+    if len(time) or len(signal) or len(trigger) == 0:
+        print(f"Empty data found in {file}")
+        return {"trigger": [], "signal": [], "rise_time": []}
 
     tr_fitter = TriggerFitter(time, trigger)
     trigger_popt = tr_fitter.fit(tr_fitter.gaussian, p0=[0.5, 0, 1, 10])
 
-    signal = savgol_filter(signal, 40, 2)
+    try:
+        signal = savgol_filter(signal, 40, 2)
+    except ValueError:
+        return {"trigger": [], "signal": [], "rise_time": []}
     sig_fitter = SignalFitter(time, signal)
     left, right = sig_fitter.auto_borders()
     if left == 0 and right == 0:

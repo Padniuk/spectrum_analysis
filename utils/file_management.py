@@ -3,10 +3,16 @@ import os
 
 
 def file_reader(file_path):
-    df = pd.read_csv(file_path)
-    time = pd.to_numeric(df["Time"][1:])
-    channel_a = pd.to_numeric(df["Channel A"][1:])
-    channel_b = pd.to_numeric(df["Channel B"][1:])
+    try:
+        df = pd.read_csv(file_path)
+        time = pd.to_numeric(df["Time"][1:])
+        channel_a = pd.to_numeric(df["Channel A"][1:])
+        channel_b = pd.to_numeric(df["Channel B"][1:])
+    except pd.errors.ParserError:
+        df = pd.read_csv(file_path, sep=";", decimal=",")
+        time = pd.to_numeric(df["Time"][1:].str.replace(",", "."))
+        channel_a = pd.to_numeric(df["Channel A"][1:].str.replace(",", "."))
+        channel_b = pd.to_numeric(df["Channel B"][1:].str.replace(",", "."))
 
     return time, channel_a, channel_b
 

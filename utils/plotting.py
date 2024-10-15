@@ -43,7 +43,13 @@ class Plotter:
         ]
         plt.hist(amplitudes, bins=60, range=(left_lim, right_lim))
 
-        y, bin_edges = np.histogram(amplitudes, bins=60, range=(left_lim, right_lim))
+        left_peak = 0
+        right_peak = 90
+        y, bin_edges = np.histogram(
+            amplitudes,
+            bins=int(0.6 * (right_peak - left_peak)),
+            range=(left_peak, right_peak),
+        )
         x = (bin_edges[:-1] + bin_edges[1:]) / 2
         tr_fitter = TriggerFitter(x, y)
         popt = tr_fitter.fit(

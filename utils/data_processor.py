@@ -16,8 +16,8 @@ def process_file(file):
     if np.any(np.isinf(time)) or np.any(np.isinf(signal)) or np.any(np.isinf(trigger)):
         print(f"Inf values found in {file}")
         return {"trigger": [], "signal": [], "rise_time": []}
-    if len(time) or len(signal) or len(trigger) == 0:
-        print(f"Empty data found in {file}")
+    if len(time) == 0 or len(signal) == 0 or len(trigger) == 0:
+        print(f"Inf values found in {file} during reading")
         return {"trigger": [], "signal": [], "rise_time": []}
 
     tr_fitter = TriggerFitter(time, trigger)

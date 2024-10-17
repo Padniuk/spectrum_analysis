@@ -78,14 +78,14 @@ class SignalFitter(Fitter):
         popt = super().fit(
             func,
             p0=[
-                abs(np.max(self.y) - np.min(self.y)),
+                0.5*abs(np.max(self.y) + np.min(self.y)),
                 0.5 * (self.x[0] + self.x[-1]),
                 0.05,
-                -7,
+                np.min(self.y),
             ],
             bounds=(
                 [0, self.x[0], 0.000001, -np.inf],
-                [np.inf, self.x[-1], np.inf, np.inf],
+                [abs(np.max(self.y) - np.min(self.y)), self.x[-1], np.inf, np.inf],
             ),
         )
         return np.append(popt, self.sign)

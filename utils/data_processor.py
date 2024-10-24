@@ -43,6 +43,9 @@ def process_file(file):
         new_time, new_signals, right, fast_signal_popt
     )
 
+    if np.isnan(slow_signal_popt[0]):
+        return {"trigger": [], "signal": [], "rise_time": []}
+
     rise_time = -1 * fast_signal_popt[2] * np.log((1 - 0.9) / 0.9 * 0.1 / (1 - 0.1))
     return {
         "trigger": trigger_popt,

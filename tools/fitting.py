@@ -7,6 +7,7 @@ class Fitter:
     def __init__(self, x, y):
         self.x = x
         self.y = y
+        self.y_min, self.y_max = np.min(y), np.max(y)
 
     def fit(self, func, p0=None, bounds=(-np.inf, np.inf)):
         try:
@@ -118,6 +119,9 @@ class SignalFitter(Fitter):
             popt[0] = signal_popt[3] - np.mean(new_signals)
             popt[1] = 0
 
+        if abs(signal_popt[0]+popt[0])/(self.y_max-self.y_min) < 0.5:
+            popt[0] = np.nan
+        
         return popt
 
 

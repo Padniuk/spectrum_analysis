@@ -79,7 +79,7 @@ class SignalFitter(Fitter):
         popt = super().fit(
             func,
             p0=[
-                0.5*abs(np.max(self.y) + np.min(self.y)),
+                0.5 * abs(np.max(self.y) + np.min(self.y)),
                 0.5 * (self.x[0] + self.x[-1]),
                 0.05,
                 np.min(self.y),
@@ -119,9 +119,9 @@ class SignalFitter(Fitter):
             popt[0] = signal_popt[3] - np.mean(new_signals)
             popt[1] = 0
 
-        if abs(signal_popt[0]+popt[0])/(self.y_max-self.y_min) < 0.5:
+        if abs(signal_popt[0] + popt[0]) / (self.y_max - self.y_min) < 0.5:
             popt[0] = np.nan
-        
+
         return popt
 
 

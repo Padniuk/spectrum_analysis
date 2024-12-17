@@ -13,7 +13,13 @@ class Plotter:
         self.folder_path = folder_path
 
     def plot_spectra(
-        self, left_lim=0, right_lim=100, time_disc_left=0, time_disc_right=2
+        self,
+        left_lim=0,
+        right_lim=100,
+        time_disc_left=0,
+        time_disc_right=2,
+        peak_left=0,
+        peak_right=100,
     ):
         with open(os.path.join(self.folder_path, "tmp/signal.txt"), "r") as file:
             signal = file.readlines()
@@ -43,18 +49,16 @@ class Plotter:
         ]
         plt.hist(amplitudes, bins=60, range=(left_lim, right_lim))
 
-        left_peak = 0
-        right_peak = 90
         y, bin_edges = np.histogram(
             amplitudes,
-            bins=int(0.6 * (right_peak - left_peak)),
-            range=(left_peak, right_peak),
+            bins=int(60 / (right_lim - left_lim) * (peak_right - peak_left)),
+            range=(peak_left, peak_right),
         )
         x = (bin_edges[:-1] + bin_edges[1:]) / 2
         tr_fitter = TriggerFitter(x, y)
         popt = tr_fitter.fit(
             tr_fitter.gauss,
-            p0=[100, 40, 3],
+            p0=[100, 0.5 * (peak_right - peak_left), 3],
             bounds=([0, 0, 0], [np.inf, np.inf, np.inf]),
         )
         _, mu, sigma = popt

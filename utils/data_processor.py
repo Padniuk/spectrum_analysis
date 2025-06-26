@@ -23,12 +23,12 @@ def process_file(file):
     tr_fitter = TriggerFitter(time, trigger)
     trigger_popt = tr_fitter.fit(tr_fitter.gaussian, p0=[0.5, 0, 1, 10])
 
+    sig_fitter = SignalFitter(time, signal)
     try:
         signal = savgol_filter(signal, 40, 2)
     except ValueError:
         return {"trigger": [], "signal": [], "rise_time": []}
-    sig_fitter = SignalFitter(time, signal)
-    left, right = sig_fitter.auto_borders()
+    left, right = sig_fitter.auto_borders(time, signal)
     if left == 0 and right == 0:
         print(f"Bad range values found in {file}")
         return {"trigger": [], "signal": [], "rise_time": []}
@@ -36,8 +36,10 @@ def process_file(file):
 
     if fast_signal_popt[0] < 0.1:
         return {"trigger": [], "signal": [], "rise_time": []}
-    new_time = [t for t in time if t > right]
-    new_signals = signal[len(time) - len(new_time) :]
+    new_time = [t for t in time if (t > right and t < 2*right - left)]
+
+    new_indices = [i for i, t in enumerate(time) if (t > right and t < 2*right - left)]
+    new_signals = signal[new_indices]
     new_signals = savgol_filter(new_signals, 200, 2)
     slow_signal_popt = sig_fitter.fit_slow_component(
         new_time, new_signals, right, fast_signal_popt

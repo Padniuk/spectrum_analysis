@@ -6,6 +6,7 @@ import matplotlib as mpl
 from tools import TriggerFitter, SignalFitter
 from tools import Validator
 from utils import file_reader
+from scipy.signal import savgol_filter
 
 
 class Plotter:
@@ -150,16 +151,19 @@ class Plotter:
         plt.close()
 
     def plot_sample(self, sample, left_lim=0, right_lim=-1):
-        csv_files = [f for f in os.listdir(self.folder_path) if f.endswith(".csv")]
+        csv_file = [f for f in os.listdir(self.folder_path) if f.endswith(f"{sample}.csv")][0]
 
         time, signals, _ = file_reader(
-            os.path.join(self.folder_path, csv_files[sample])
+            os.path.join(self.folder_path, csv_file)
         )
 
         with open(os.path.join(self.folder_path, "tmp/signal.txt"), "r") as file:
             signal = file.readlines()
 
-        popt = [float(par) for par in signal[sample].split(",")]
+        try:
+            popt = [float(par) for par in signal[sample-1].split(",")]
+        except ValueError:
+            return
         if sample in list(Validator(self.folder_path).validated_indices()):
             plt.plot(time[left_lim:right_lim], signals[left_lim:right_lim])
             signal_fitter = SignalFitter(
@@ -169,7 +173,10 @@ class Plotter:
                 time[left_lim:right_lim],
                 signal_fitter.sigmoid(time, *popt[:4])[left_lim:right_lim],
             )
-            left, right = signal_fitter.auto_borders()
+
+            signals = savgol_filter(signals, 40, 2)
+    
+            left, right = signal_fitter.auto_borders(time, signals)
 
             if popt[-1] == 1:
                 offset = popt[3] + popt[0]
@@ -191,3 +198,10 @@ class Plotter:
             os.makedirs(samples_folder, exist_ok=True)
             plt.savefig(os.path.join(samples_folder, f"{sample}.png"))
             plt.close()
+
+    def plot_all_peaks(self):
+        csv_files = [f for f in os.listdir(self.folder_path) if f.endswith(".csv")]
+
+        for file in csv_files:
+            sample = int(file.split("_")[-1].replace(".csv", ""))
+            self.plot_sample(sample)

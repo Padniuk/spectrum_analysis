@@ -15,6 +15,8 @@ Install necessary modules:
 pip install -r requirements.txt 
 ```
 
+Do not forget to create `.env` file and fill the ploting variables and derivative slope strength
+
 Run script with help flag:
 ```bash
 # For Linux

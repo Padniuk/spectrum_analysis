@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
-
+from configs import settings
 
 class Fitter:
     def __init__(self, x, y):
@@ -47,14 +47,14 @@ class SignalFitter(Fitter):
     def one_exponent(self, x, amp, wid, cen=0, offset=0):
         return self.sign * amp * (1 - np.exp(-wid * (x - cen))) + offset
 
-    def auto_borders(self):
-        smooth_y = savgol_filter(self.y, 40, 2)
+    def auto_borders(self, x, y):
+        smooth_y = savgol_filter(y, 40, 2)
         derivative = np.gradient(smooth_y)
         derivative = savgol_filter(derivative, 400, 2)
         derivative = np.abs(derivative)
-        threshold = 0.6 * np.max(derivative)
+        threshold = settings.derivative_slope * np.max(derivative)
 
-        time = np.array(self.x)
+        time = np.array(x)
         time_points = [
             time[i]
             for i in range(len(derivative))

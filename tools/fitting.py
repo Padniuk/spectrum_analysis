@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
-from configs import settings
+
 
 class Fitter:
     def __init__(self, x, y):
@@ -52,7 +52,7 @@ class SignalFitter(Fitter):
         derivative = np.gradient(smooth_y)
         derivative = savgol_filter(derivative, 400, 2)
         derivative = np.abs(derivative)
-        threshold = settings.derivative_slope * np.max(derivative)
+        threshold = 0.2 * np.max(derivative)
 
         time = np.array(x)
         time_points = [
@@ -123,6 +123,24 @@ class SignalFitter(Fitter):
             popt[0] = np.nan
 
         return popt
+
+    def fast_rise_time(self):
+        try:
+            smooth_y = savgol_filter(self.y, 10, 2)
+            derivative = np.gradient(smooth_y)
+            max_derivative_idx = np.argmax(derivative)
+            right_time = self.x[max_derivative_idx]
+
+            growth_start = max_derivative_idx
+            while (
+                growth_start > 1
+                and derivative[growth_start - 1] < derivative[growth_start]
+            ):
+                growth_start -= 1
+            left_time = self.x[growth_start]
+        except ValueError:
+            return 0
+        return right_time - left_time
 
 
 class TriggerFitter(Fitter):

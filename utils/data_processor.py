@@ -1,8 +1,11 @@
-from multiprocessing import Pool
-import sys
-from tools import SignalFitter, TriggerFitter
 import os
+import sys
+import tqdm
+import warnings
 import numpy as np
+from multiprocessing import Pool
+from scipy.optimize import OptimizeWarning
+from tools import SignalFitter, TriggerFitter
 from utils import file_reader, file_writer
 from scipy.signal import savgol_filter
 
@@ -11,13 +14,13 @@ def process_file(file):
     time, signal, trigger = file_reader(file)
 
     if np.any(np.isnan(time)) or np.any(np.isnan(signal)) or np.any(np.isnan(trigger)):
-        print(f"NaN values found in {file}")
+        # print(f"NaN values found in {file}")
         return {"trigger": [], "signal": [], "rise_time": []}
     if np.any(np.isinf(time)) or np.any(np.isinf(signal)) or np.any(np.isinf(trigger)):
-        print(f"Inf values found in {file}")
+        # print(f"Inf values found in {file}")
         return {"trigger": [], "signal": [], "rise_time": []}
     if len(time) == 0 or len(signal) == 0 or len(trigger) == 0:
-        print(f"Inf values found in {file} during reading")
+        # print(f"Inf values found in {file} during reading")
         return {"trigger": [], "signal": [], "rise_time": []}
 
     tr_fitter = TriggerFitter(time, trigger)
@@ -30,17 +33,23 @@ def process_file(file):
         return {"trigger": [], "signal": [], "rise_time": []}
     left, right = sig_fitter.auto_borders(time, signal)
     if left == 0 and right == 0:
-        print(f"Bad range values found in {file}")
+        # print(f"Bad range values found in {file}")
         return {"trigger": [], "signal": [], "rise_time": []}
+    rise_time = sig_fitter.fast_rise_time()
     fast_signal_popt = sig_fitter.fit_fast_component(sig_fitter.sigmoid)
 
-    if fast_signal_popt[0] < 0.1:
+    if fast_signal_popt[0] < 0.1 or rise_time == 0:
         return {"trigger": [], "signal": [], "rise_time": []}
-    new_time = [t for t in time if (t > right and t < 2*right - left)]
+    new_time = [t for t in time if (t > right and t < 2 * right - left)]
 
-    new_indices = [i for i, t in enumerate(time) if (t > right and t < 2*right - left)]
+    new_indices = [
+        i for i, t in enumerate(time) if (t > right and t < 2 * right - left)
+    ]
     new_signals = signal[new_indices]
-    new_signals = savgol_filter(new_signals, 200, 2)
+    try:
+        new_signals = savgol_filter(new_signals, 200, 2)
+    except ValueError:
+        return {"trigger": [], "signal": [], "rise_time": []}
     slow_signal_popt = sig_fitter.fit_slow_component(
         new_time, new_signals, right, fast_signal_popt
     )
@@ -48,7 +57,6 @@ def process_file(file):
     if np.isnan(slow_signal_popt[0]):
         return {"trigger": [], "signal": [], "rise_time": []}
 
-    rise_time = -1 * fast_signal_popt[2] * np.log((1 - 0.9) / 0.9 * 0.1 / (1 - 0.1))
     return {
         "trigger": trigger_popt,
         "signal": [*(fast_signal_popt[:4]), *slow_signal_popt, fast_signal_popt[4]],
@@ -57,6 +65,9 @@ def process_file(file):
 
 
 def process_data(folder_path, num_workers):
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+    warnings.filterwarnings("ignore", category=OptimizeWarning)
+
     if num_workers > os.cpu_count() - 1:
         print("Number of workers exceeds the number of available threads")
         sys.exit(1)
@@ -71,9 +82,14 @@ def process_data(folder_path, num_workers):
         sys.exit(1)
 
     print(f"Found {len(file_list)} files. Processing with {num_workers} workers...")
-
     with Pool(num_workers) as pool:
-        result = pool.map(process_file, file_list)
+        result = list(
+            tqdm.tqdm(
+                pool.imap(process_file, file_list),
+                total=len(file_list),
+                desc="Processing files",
+            )
+        )
 
     valid_results = [
         res

@@ -52,28 +52,31 @@ class SignalFitter(Fitter):
         derivative = np.gradient(smooth_y)
         derivative = savgol_filter(derivative, 400, 2)
         derivative = np.abs(derivative)
-        threshold = 0.2 * np.max(derivative)
+        left_threshold = 0.2 * np.max(derivative)
+        right_threshold = 0.01 * np.max(derivative)
 
         time = np.array(x)
-        time_points = [
-            time[i]
-            for i in range(len(derivative))
-            if derivative[i] > threshold
-            and time[i] < 0.7 * np.max(time)
-            and time[i] > 0.3 * np.min(time)
-        ]
 
-        if len(time_points) < 2:
-            return 0, 0
-        left = time_points[0]
-        right = time_points[-1]
+        middle_idx = np.argmax(derivative)
+        middle = time[middle_idx] if middle_idx is not None else None
 
-        filtered_indices = np.where((time >= left) & (time <= right))[0]
+        left_idx = middle_idx
+        while left_idx > 0 and derivative[left_idx] > left_threshold:
+            left_idx -= 1
+        left = time[left_idx] if left_idx is not None else None
 
+        right_idx = middle_idx
+        while (
+            right_idx < len(derivative) - 1 and derivative[right_idx] > right_threshold
+        ):
+            right_idx += 1
+        right = time[right_idx] if right_idx is not None else None
+
+        filtered_indices = np.where((time >= left) & (time <= middle))[0]
         self.x = np.array(self.x)[filtered_indices]
         self.y = np.array(self.y)[filtered_indices]
 
-        return left, right
+        return left, middle, right
 
     def fit_fast_component(self, func):
         popt = super().fit(
@@ -86,7 +89,7 @@ class SignalFitter(Fitter):
             ],
             bounds=(
                 [0, self.x[0], 0.000001, -np.inf],
-                [abs(np.max(self.y) - np.min(self.y)), self.x[-1], np.inf, np.inf],
+                [np.inf, self.x[-1], np.inf, np.inf],
             ),
         )
         return np.append(popt, self.sign)
